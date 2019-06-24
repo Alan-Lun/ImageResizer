@@ -9,7 +9,7 @@ namespace ImageResizer
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             string sourcePath = Path.Combine(Environment.CurrentDirectory, "images");
             string destinationPath = Path.Combine(Environment.CurrentDirectory, "output"); ;
@@ -20,10 +20,13 @@ namespace ImageResizer
 
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            imageProcess.ResizeImages(sourcePath, destinationPath, 2.0);
+            var taskResult = imageProcess.ResizeImagesAsync(sourcePath, destinationPath, 2.0);
+            await taskResult;
             sw.Stop();
-
+            //改寫前2570ms
+            //改寫後821ms
             Console.WriteLine($"花費時間: {sw.ElapsedMilliseconds} ms");
+            Console.Read();
         }
     }
 }
