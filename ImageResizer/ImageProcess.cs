@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -69,7 +70,7 @@ namespace ImageResizer
         public async Task ResizeImagesAsync(string sourcePath, string destPath, double scale)//public async Task ResizeImagesAsync(string sourcePath, string destPath, double scale)
         {
             var allFiles = FindImages(sourcePath);
-            var taskResult = new List<Task>();
+            var taskResult = new ConcurrentBag<Task>();
             Parallel.ForEach(allFiles, (item, loopState) =>
             {
                 taskResult.Add(Task.Run(async () => {
