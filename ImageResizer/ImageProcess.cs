@@ -76,7 +76,7 @@ namespace ImageResizer
                 var taskResult = new ConcurrentBag<Task>();
                 foreach (var item in y.Result)
                 {
-                    taskResult.Add(Task.Run(async () =>
+                    taskResult.Add(Task.Run(() =>
                     {
                         Image imgPhoto = Image.FromFile(item);
                         string imgName = Path.GetFileNameWithoutExtension(item);
