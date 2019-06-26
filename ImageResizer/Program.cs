@@ -26,6 +26,7 @@ namespace ImageResizer
             //50 img
             //改寫前4978ms
             //改寫後2802ms
+            //結合Parallel.ForEach 429ms
             Console.WriteLine($"花費時間: {sw.ElapsedMilliseconds} ms");
             Console.Read();
         }

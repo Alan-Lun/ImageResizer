@@ -73,32 +73,33 @@ namespace ImageResizer
         {
             var allFiles = FindImages(sourcePath);
             var taskResult = new ConcurrentBag<Task>();
+            var imgResult = new ConcurrentBag<ImgSave>();
             foreach (var item in allFiles)
             {
-                taskResult.Add(Task.Run(async () =>
+                Image imgPhoto = Image.FromFile(item);
+                string imgName = Path.GetFileNameWithoutExtension(item);
+
+                int sourceWidth = imgPhoto.Width;
+                int sourceHeight = imgPhoto.Height;
+
+                int destionatonWidth = (int)(sourceWidth * scale);
+                int destionatonHeight = (int)(sourceHeight * scale);
+
+                var imgItem = new ImgSave
                 {
-                    Image imgPhoto = Image.FromFile(item);
-                    string imgName = Path.GetFileNameWithoutExtension(item);
-
-                    int sourceWidth = imgPhoto.Width;
-                    int sourceHeight = imgPhoto.Height;
-
-                    int destionatonWidth = (int) (sourceWidth * scale);
-                    int destionatonHeight = (int) (sourceHeight * scale);
-
-                    var processedImage = processBitmapAsync((Bitmap) imgPhoto,
-                        sourceWidth, sourceHeight,
-                        destionatonWidth, destionatonHeight);
-
-                    string destFile = Path.Combine(destPath, imgName + ".jpg");
-
-                    return processedImage.ContinueWith(async x =>
-                    {
-                        var result = await x;
-                        result.Save(destFile, ImageFormat.Jpeg);
-                    });
-                }));
+                    Image = processBitmapAsync((Bitmap)imgPhoto,
+                    sourceWidth, sourceHeight,
+                    destionatonWidth, destionatonHeight),
+                    DestFile = Path.Combine(destPath, imgName + ".jpg")
+                };
+                imgResult.Add(imgItem);
             }
+
+            Parallel.ForEach(imgResult, async (item) =>
+            {
+                var img = await item.Image;
+                img.Save(item.DestFile, ImageFormat.Jpeg);
+            });
 
             await Task.WhenAll(taskResult);
         }
@@ -166,5 +167,12 @@ namespace ImageResizer
             });
             return taskResult;
         }
+    }
+
+    public class ImgSave
+    {
+        public Task<Bitmap> Image { get; set; }
+        public string DestFile { get; set; }
+
     }
 }
