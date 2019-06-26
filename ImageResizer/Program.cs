@@ -23,8 +23,9 @@ namespace ImageResizer
             var taskResult = imageProcess.ResizeImagesAsync(sourcePath, destinationPath, 2.0);
             await taskResult;
             sw.Stop();
-            //改寫前2570ms
-            //改寫後821ms
+            //50 img
+            //改寫前4978ms
+            //改寫後2802ms
             Console.WriteLine($"花費時間: {sw.ElapsedMilliseconds} ms");
             Console.Read();
         }
