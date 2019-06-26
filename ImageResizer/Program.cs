@@ -25,7 +25,6 @@ namespace ImageResizer
             sw.Stop();
             //改寫前2570ms
             //改寫後821ms
-            //再度改寫後29ms
             Console.WriteLine($"花費時間: {sw.ElapsedMilliseconds} ms");
             Console.Read();
         }

@@ -1,5 +1,7 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -67,39 +69,38 @@ namespace ImageResizer
         /// <param name="sourcePath">圖片來源目錄路徑</param>
         /// <param name="destPath">產生圖片目的目錄路徑</param>
         /// <param name="scale">縮放比例</param>
-        public Task ResizeImagesAsync(string sourcePath, string destPath, double scale)
+        public async Task ResizeImagesAsync(string sourcePath, string destPath, double scale)
         {
-            var allFiles = FindImagesAsync(sourcePath);
-            
-            var result = allFiles.ContinueWith(y =>
+            var allFiles = FindImages(sourcePath);
+            var taskResult = new ConcurrentBag<Task>();
+            foreach (var item in allFiles)
             {
-                var taskResult = new ConcurrentBag<Task>();
-                foreach (var item in y.Result)
+                taskResult.Add(Task.Run(async () =>
                 {
-                    taskResult.Add(Task.Run(() =>
+                    Image imgPhoto = Image.FromFile(item);
+                    string imgName = Path.GetFileNameWithoutExtension(item);
+
+                    int sourceWidth = imgPhoto.Width;
+                    int sourceHeight = imgPhoto.Height;
+
+                    int destionatonWidth = (int) (sourceWidth * scale);
+                    int destionatonHeight = (int) (sourceHeight * scale);
+
+                    var processedImage = processBitmapAsync((Bitmap) imgPhoto,
+                        sourceWidth, sourceHeight,
+                        destionatonWidth, destionatonHeight);
+
+                    string destFile = Path.Combine(destPath, imgName + ".jpg");
+
+                    return processedImage.ContinueWith(async x =>
                     {
-                        Image imgPhoto = Image.FromFile(item);
-                        string imgName = Path.GetFileNameWithoutExtension(item);
+                        var result = await x;
+                        result.Save(destFile, ImageFormat.Jpeg);
+                    });
+                }));
+            }
 
-                        int sourceWidth = imgPhoto.Width;
-                        int sourceHeight = imgPhoto.Height;
-
-                        int destionatonWidth = (int) (sourceWidth * scale);
-                        int destionatonHeight = (int) (sourceHeight * scale);
-
-                        var processedImage = processBitmapAsync((Bitmap) imgPhoto,
-                            sourceWidth, sourceHeight,
-                            destionatonWidth, destionatonHeight);
-
-                        string destFile = Path.Combine(destPath, imgName + ".jpg");
-
-                        return processedImage.ContinueWith(x => x.Result.Save(destFile, ImageFormat.Jpeg));
-                    }));
-                }
-                return Task.WhenAll(taskResult);
-            });
-            
-            return result;
+            await Task.WhenAll(taskResult);
         }
 
         /// <summary>
@@ -114,39 +115,6 @@ namespace ImageResizer
             files.AddRange(Directory.GetFiles(srcPath, "*.jpg", SearchOption.AllDirectories));
             files.AddRange(Directory.GetFiles(srcPath, "*.jpeg", SearchOption.AllDirectories));
             return files;
-        }
-
-        /// <summary>
-        /// 找出指定目錄下的圖片
-        /// </summary>
-        /// <param name="srcPath">圖片來源目錄路徑</param>
-        /// <returns></returns>
-        public Task<ConcurrentBag<string>> FindImagesAsync(string srcPath)
-        {
-            var taskResult = Task.Run(() =>
-            {
-                var files = new ConcurrentBag<string>();
-                var png = Directory.GetFiles(srcPath, "*.png", SearchOption.AllDirectories);
-                foreach (var item in png)
-                {
-                    files.Add(item);
-                }
-                var jpg = Directory.GetFiles(srcPath, "*.png", SearchOption.AllDirectories);
-                foreach (var item in jpg)
-                {
-                    files.Add(item);
-                }
-
-                var jpeg = Directory.GetFiles(srcPath, "*.jpeg", SearchOption.AllDirectories);
-                foreach (var item in jpeg)
-                {
-                    files.Add(item);
-                }
-
-                return files;
-            });
-            
-            return taskResult;
         }
 
         /// <summary>
@@ -183,7 +151,7 @@ namespace ImageResizer
         /// <returns></returns>
         Task<Bitmap> processBitmapAsync(Bitmap img, int srcWidth, int srcHeight, int newWidth, int newHeight)
         {
-            var taskResult = Task.Run(async () =>
+            var taskResult = Task.Run(() =>
             {
                 Bitmap resizedbitmap = new Bitmap(newWidth, newHeight);
                 Graphics g = Graphics.FromImage(resizedbitmap);
